@@ -10,34 +10,33 @@ export default function Home() {
   const [errorMessage, setErrorMessage] = useState("");
   const [mockMode, setMockMode] = useState(false); // Set to true since we don't have real ESP32
 
-  // Use environment variable for stream URL
   const streamUrl = process.env.NEXT_PUBLIC_STREAM_URL;
-  // Mock image to show when in development/mock mode
-  // const mockImageUrl = "/mock-camera-feed.jpg";
+  const servoControlUrl = process.env.NEXT_PUBLIC_SERVO_CONTROL_URL;
 
   const toggleGate = async () => {
     try {
       setStatus("Processing...");
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for 1 second
-
-      setErrorMessage("");
-
-      const response = await fetch("/api/control/gate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ open: !isGateOpen }),
+      
+      // Determine the angle based on current gate state
+      const newGateState = !isGateOpen;
+      const servoAngle = newGateState ? 90 : 0;
+      
+      // Create the URL with the angle parameter
+      const url = `${servoControlUrl}?angle=${servoAngle}`;
+      
+      // Send request to control the servo
+      const response = await fetch(url, {
+        method: "GET",
       });
-
-      const data = await response.json();
-
+      
       if (response.ok) {
-        setIsGateOpen(!isGateOpen);
-        setStatus(`Gate ${!isGateOpen ? "opened" : "closed"} successfully`);
+        // Update gate state if the request was successful
+        setIsGateOpen(newGateState);
+        setStatus(`Gate ${newGateState ? "opened" : "closed"} successfully`);
+        setErrorMessage("");
       } else {
         setStatus("Failed to control gate");
-        setErrorMessage(data.message || "Unknown error occurred");
+        setErrorMessage("Server returned an error");
       }
     } catch (error) {
       console.error("Error controlling gate:", error);
@@ -45,61 +44,6 @@ export default function Home() {
       setErrorMessage(error.message);
     }
   };
-
-  // const toggleRedLight = async () => {
-  //   try {
-  //     setStatus("Processing...");
-  //     setErrorMessage("");
-
-  //     const response = await fetch("/api/control/light", {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify({ on: !isRedLightOn }),
-  //     });
-
-  //     const data = await response.json();
-
-  //     if (response.ok) {
-  //       setIsRedLightOn(!isRedLightOn);
-  //       setStatus(
-  //         `Red light turned ${!isRedLightOn ? "on" : "off"} successfully`
-  //       );
-  //     } else {
-  //       setStatus("Failed to control red light");
-  //       setErrorMessage(data.message || "Unknown error occurred");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error controlling red light:", error);
-  //     setStatus("Error controlling red light");
-  //     setErrorMessage(error.message);
-  //   }
-  // };
-
-  // Check connection status
-  useEffect(() => {
-    const checkConnection = async () => {
-      // try {
-      //   setErrorMessage("");
-      //   const response = await fetch("/api/health");
-      //   const data = await response.json();
-      //   setIsConnected(response.ok && data.status === "online");
-      //   if (!response.ok || data.status !== "online") {
-      //     setErrorMessage("ESP32-CAM is offline or not responding");
-      //   }
-      // } catch (error) {
-      //   console.error("Health check error:", error);
-      //   setIsConnected(false);
-      //   setErrorMessage(`Connection error: ${error.message}`);
-      // }
-    };
-
-    checkConnection();
-    const interval = setInterval(checkConnection, 10000); // Check every 10 seconds
-
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <main className="flex min-h-screen flex-col p-6 bg-gray-100">
@@ -240,46 +184,6 @@ export default function Home() {
                   {isGateOpen ? "Close Gate" : "Open Gate"}
                 </button>
               </div>
-
-              {/* Red Light Control
-              <div>
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    <h3 className="font-medium text-gray-800">Red Light</h3>
-                    <p className="text-sm text-gray-500">
-                      Current state: {isRedLightOn ? "On" : "Off"}
-                    </p>
-                  </div>
-                  <div
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
-                      isRedLightOn ? "bg-indigo-600" : "bg-gray-200"
-                    }`}
-                    onClick={toggleRedLight}
-                    role="switch"
-                    aria-checked={isRedLightOn}
-                    tabIndex={0}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        isRedLightOn ? "translate-x-6" : "translate-x-1"
-                      }`}
-                    />
-                  </div>
-                </div>
-                <button
-                  onClick={toggleRedLight}
-                  disabled={!isConnected && !mockMode}
-                  className={`w-full py-2 px-4 rounded-md text-white font-medium transition-colors ${
-                    !isConnected && !mockMode
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : isRedLightOn
-                      ? "bg-red-500 hover:bg-red-600"
-                      : "bg-green-500 hover:bg-green-600"
-                  }`}
-                >
-                  {isRedLightOn ? "Turn Off Red Light" : "Turn On Red Light"}
-                </button>
-              </div> */}
             </div>
 
             {/* Status Display */}
