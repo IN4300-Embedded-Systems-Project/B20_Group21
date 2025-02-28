@@ -3,48 +3,56 @@
 import { useState, useEffect } from "react";
 
 export default function Home() {
-  const [isGateOpen, setIsGateOpen] = useState(false);
+  const [isGateOpen, setIsGateOpen] = useState(true);
   const [isRedLightOn, setIsRedLightOn] = useState(false);
   const [isConnected, setIsConnected] = useState(true);
   const [status, setStatus] = useState("Idle");
   const [errorMessage, setErrorMessage] = useState("");
-  const [mockMode, setMockMode] = useState(false); // Set to true since we don't have real ESP32
+  const [mockMode, setMockMode] = useState(false);
 
   const streamUrl = process.env.NEXT_PUBLIC_STREAM_URL;
-  const servoControlUrl = process.env.NEXT_PUBLIC_SERVO_CONTROL_URL;
+
+  // Initialize gate state on mount
+  useEffect(() => {
+    const initializeGate = async () => {
+      const response = await fetch("http://127.0.0.1:8000/open-gate", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log("response", response);
+      setIsGateOpen(true);
+      setStatus("Gate initialized to open position");
+    };
+
+    initializeGate();
+  }, []);
 
   const toggleGate = async () => {
-    try {
-      setStatus("Processing...");
-      
-      // Determine the angle based on current gate state
-      const newGateState = !isGateOpen;
-      const servoAngle = newGateState ? 90 : 0;
-      
-      // Create the URL with the angle parameter
-      const url = `${servoControlUrl}?angle=${servoAngle}`;
-      
-      // Send request to control the servo
-      const response = await fetch(url, {
-        method: "GET",
-      });
-      
-      if (response.ok) {
-        // Update gate state if the request was successful
-        setIsGateOpen(newGateState);
-        setStatus(`Gate ${newGateState ? "opened" : "closed"} successfully`);
-        setErrorMessage("");
-      } else {
-        setStatus("Failed to control gate");
-        setErrorMessage("Server returned an error");
-      }
-    } catch (error) {
-      console.error("Error controlling gate:", error);
-      setStatus("Error controlling gate");
-      setErrorMessage(error.message);
-    }
-  };
+    setStatus("Processing...");
+    const newGateState = !isGateOpen;
 
+    // Determine target URL based on new state
+    const targetAngle = newGateState ? "close-gate" : "open-gate";
+    const targetUrl = `http://127.0.0.1:8000/${targetAngle}`;
+
+    console.log("targetUrl", targetUrl);
+
+    const response = await fetch(targetUrl, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log("response", response);
+
+    setIsGateOpen(newGateState);
+    setStatus(`Gate ${newGateState ? "closed" : "opened"} successfully`);
+    setErrorMessage("");
+  };
   return (
     <main className="flex min-h-screen flex-col p-6 bg-gray-100">
       <div className="max-w-5xl w-full mx-auto">
