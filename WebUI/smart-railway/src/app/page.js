@@ -35,7 +35,7 @@ export default function Home() {
     const newGateState = !isGateOpen;
 
     // Determine target URL based on new state
-    const targetAngle = newGateState ? "close-gate" : "open-gate";
+    const targetAngle = newGateState ? "open-gate" : "close-gate";
     const targetUrl = `http://127.0.0.1:8000/${targetAngle}`;
 
     console.log("targetUrl", targetUrl);
@@ -50,7 +50,7 @@ export default function Home() {
     console.log("response", response);
 
     setIsGateOpen(newGateState);
-    setStatus(`Gate ${newGateState ? "closed" : "opened"} successfully`);
+    setStatus(`Gate ${newGateState ? "opened" : "closed"} successfully`);
     setErrorMessage("");
   };
   return (
